@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "facing=east,powered=false": {
+      "model": "moon-computers:block/computer_case",
+      "y": 90
+    },
+    "facing=east,powered=true": {
+      "model": "moon-computers:block/computer_case_on",
+      "y": 90
+    },
+    "facing=north,powered=false": {
+      "model": "moon-computers:block/computer_case"
+    },
+    "facing=north,powered=true": {
+      "model": "moon-computers:block/computer_case_on"
+    },
+    "facing=south,powered=false": {
+      "model": "moon-computers:block/computer_case",
+      "y": 180
+    },
+    "facing=south,powered=true": {
+      "model": "moon-computers:block/computer_case_on",
+      "y": 180
+    },
+    "facing=west,powered=false": {
+      "model": "moon-computers:block/computer_case",
+      "y": 270
+    },
+    "facing=west,powered=true": {
+      "model": "moon-computers:block/computer_case_on",
+      "y": 270
+    }
+  }
+}

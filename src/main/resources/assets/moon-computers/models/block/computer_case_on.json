@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/orientable",
+  "textures": {
+    "front": "moon-computers:block/computer_case_front_on",
+    "side": "moon-computers:block/computer_case_side",
+    "top": "moon-computers:block/computer_case_top",
+    "back": "moon-computers:block/computer_case_back"
+  }
+}
