@@ -86,29 +86,11 @@ public class ComputerCaseEntity extends BlockEntity implements ExtendedScreenHan
             return;
 
         this.computer.tick();
-
-        tickCount++;
-
-        if (tickCount % 10 == 1)
-        {
-            NetworkIO network = this.computer.getDevice(NetworkIO.class);
-            network.send(("Hello from "+this.pos).getBytes(StandardCharsets.UTF_8));
-        }
     }
 
     public void onComputerCreate()
     {
         assert screen != null;
-
-        NetworkIO network = this.computer.getDevice(NetworkIO.class);
-        network.listen((rfPacket) -> {
-            if (network.owns(rfPacket))
-                return;
-
-            screen.printLine("[Network]: Got message \"" + new String(rfPacket.data, StandardCharsets.UTF_8) + "\"");
-
-            screen.flush();
-        });
 
         FileIO fileIO = this.computer.getDevice(FileIO.class);
 

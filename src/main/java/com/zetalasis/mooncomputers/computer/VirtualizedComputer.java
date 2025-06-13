@@ -1,10 +1,7 @@
 package com.zetalasis.mooncomputers.computer;
 
 import com.zetalasis.mooncomputers.MoonComputers;
-import com.zetalasis.mooncomputers.computer.device.FileIO;
-import com.zetalasis.mooncomputers.computer.device.GraphicsCard;
-import com.zetalasis.mooncomputers.computer.device.IMemoryMappedIO;
-import com.zetalasis.mooncomputers.computer.device.NetworkIO;
+import com.zetalasis.mooncomputers.computer.device.*;
 import com.zetalasis.mooncomputers.computer.memory.MemoryPage;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaError;
@@ -98,6 +95,8 @@ public class VirtualizedComputer {
                 return LuaValue.NIL;
             }
         });
+
+        luaGlobals.set("net", new LuaNetworkIO(networkIO));
     }
 
     @SuppressWarnings("unchecked")
