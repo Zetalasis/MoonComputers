@@ -178,7 +178,7 @@ public class ComputerCaseEntity extends BlockEntity implements ExtendedScreenHan
 
                 screen.linkedComputer = this.pos;
 
-                this.computer = new VirtualizedComputer(16, (string)->{
+                this.computer = new VirtualizedComputer(256, (string)->{
                     screen.printLine(string);
                     screen.flush();
                 });

@@ -2,6 +2,7 @@ package com.zetalasis.mooncomputers.block.entity;
 
 import com.zetalasis.mooncomputers.MoonComputers;
 import com.zetalasis.mooncomputers.block.MCBlocks;
+import com.zetalasis.mooncomputers.computer.device.GraphicsCard;
 import com.zetalasis.mooncomputers.computer.memory.MemoryPage;
 import com.zetalasis.mooncomputers.entity.MCEntities;
 import com.zetalasis.mooncomputers.networking.MCPacketsS2C;
@@ -57,7 +58,7 @@ public class ScreenBlockEntity extends BlockEntity implements ExtendedScreenHand
 
     public void clear()
     {
-        vram = new byte[4096*4];
+        vram = new byte[4096*57];
         screenLines.clear();
         this.flush();
     }
@@ -74,8 +75,10 @@ public class ScreenBlockEntity extends BlockEntity implements ExtendedScreenHand
         ComputerCaseEntity computer = (ComputerCaseEntity) world.getBlockEntity(linkedComputer);
         assert computer != null;
 
-        // Read first few pages — match however many you give the GPU (e.g., 4)
-        int pageCount = 4;
+        GraphicsCard graphicsCard = computer.computer.getDevice(GraphicsCard.class);
+        graphicsCard.render();
+
+        int pageCount = GraphicsCard.FRAMEBUFFER_PAGE_COUNT;
         ByteArrayOutputStream combined = new ByteArrayOutputStream(4096 * pageCount);
 
         for (int i = 0; i < pageCount; i++) {

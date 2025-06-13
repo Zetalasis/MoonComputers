@@ -3,17 +3,18 @@ package com.zetalasis.mooncomputers.computer.device;
 import com.zetalasis.mooncomputers.computer.VirtualizedComputer;
 import com.zetalasis.mooncomputers.computer.memory.MemoryPage;
 
+import java.awt.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.Arrays;
 
 public class GraphicsCard implements IMemoryMappedIO {
-    private static final int FRAMEBUFFER_PAGE_COUNT = 4; // Use 4 pages (16KB total)
+    public static final int FRAMEBUFFER_PAGE_COUNT = 169;
     private final VirtualizedComputer computer;
     private final MemoryPage[] framebufferPages = new MemoryPage[FRAMEBUFFER_PAGE_COUNT];
 
-    public int mode = 0;
+    public int mode = 2;
 
     public GraphicsCard(VirtualizedComputer host)
     {
@@ -48,8 +49,8 @@ public class GraphicsCard implements IMemoryMappedIO {
     }
 
     public void render() {
-        int width = 64;
-        int height = 64;
+        int width = 220;
+        int height = 220;
         int totalPixels = width * height;
         int framebufferSize = 0;
 
@@ -76,6 +77,24 @@ public class GraphicsCard implements IMemoryMappedIO {
         framebuffer[0] = (byte) mode;
         framebuffer[1] = (byte) width;
         framebuffer[2] = (byte) height;
+
+//        for (int y = 0; y < height; y++) {
+//            for (int x = 0; x < width; x++) {
+//                int pixelIndex = 3 + (y * width + x) * 3;
+//
+//                int brightness = ((x + y) * 255) / (width + height - 2);
+//                byte r = (byte) brightness;
+//                byte g = (byte) brightness;
+//                byte b = (byte) brightness;
+//
+//                framebuffer[pixelIndex] = r;
+//                framebuffer[pixelIndex + 1] = g;
+//                framebuffer[pixelIndex + 2] = b;
+//            }
+//        }
+
+        BitmappedTexture bitmappedTexture = new BitmappedTexture("doom.bmp", computer.getDevice(FileIO.class));
+        bitmappedTexture.blitToFramebuffer(framebuffer, width, height, 0, 0);
 
         int remaining = framebuffer.length;
         int offset = 0;
@@ -134,7 +153,9 @@ public class GraphicsCard implements IMemoryMappedIO {
                 int bmpRowStart = pixelArrayOffset + (height - 1 - y) * rowSize;
                 for (int x = 0; x < width; x++) {
                     int bmpPixel = bmpRowStart + x * 3;
-                    int texPixel = ((height - 1 - y) * width + x) * 3;
+                    int texPixel = (y * width + x) * 3;
+
+                    if (bmpPixel + 2 >= bmp.length) continue;
 
                     byte blue = bmp[bmpPixel];
                     byte green = bmp[bmpPixel + 1];

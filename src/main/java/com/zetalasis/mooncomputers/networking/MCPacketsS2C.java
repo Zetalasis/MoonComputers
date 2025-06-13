@@ -9,9 +9,12 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class MCPacketsS2C {
+    public static final int MAX_CHUNK_SIZE = 16 * 1024;
+
     public static void register()
     {
         ServerPlayNetworking.registerGlobalReceiver(MCMessages.UPDATE_COMPUTER_STATE_C2S, UpdateComputerStateC2S::handle);
@@ -38,24 +41,41 @@ public class MCPacketsS2C {
         ServerPlayNetworking.send(sp, MCMessages.UPDATE_COMPUTER_STATE_S2C, buf);
     }
 
-    public static void updateScreenState(ServerPlayerEntity sp, BlockPos pos, List<String> screenLines, byte[] vram)
-    {
+    public static void updateScreenState(ServerPlayerEntity sp, BlockPos pos, List<String> screenLines, byte[] vram) {
         if (vram == null) throw new IllegalStateException("VRAM is null!");
 
-        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-
-        buf.writeBlockPos(pos);
         StringBuilder formatted = new StringBuilder();
-
-        for (String line : screenLines)
-        {
+        for (String line : screenLines) {
             formatted.append(line).append("\n");
         }
 
-        buf.writeString(formatted.toString());
-        buf.writeByteArray(vram);
+        String text = formatted.toString();
+        int totalChunks = (int) Math.ceil((double) vram.length / MAX_CHUNK_SIZE);
 
-        MoonComputers.LOGGER.info("Sending Screen Update Packet | Buffer Size: {}", buf.readableBytes());
-        ServerPlayNetworking.send(sp, MCMessages.UPDATE_SCREEN_STATE_S2C, buf);
+        for (int chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+            int start = chunkIndex * MAX_CHUNK_SIZE;
+            int end = Math.min(vram.length, (chunkIndex + 1) * MAX_CHUNK_SIZE);
+            byte[] chunk = Arrays.copyOfRange(vram, start, end);
+
+            PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+            buf.writeBlockPos(pos);
+            buf.writeInt(totalChunks);
+            buf.writeInt(chunkIndex);
+
+            if (chunkIndex == 0) {
+                buf.writeBoolean(true);
+                buf.writeString(text);
+            } else {
+                buf.writeBoolean(false);
+            }
+
+            buf.writeInt(vram.length);
+            buf.writeInt(chunk.length);
+            buf.writeBytes(chunk);
+
+            ServerPlayNetworking.send(sp, MCMessages.UPDATE_SCREEN_STATE_S2C, buf);
+        }
+
+        MoonComputers.LOGGER.info("Sent screen update in {} chunks, total size: {} bytes", totalChunks, vram.length);
     }
 }
