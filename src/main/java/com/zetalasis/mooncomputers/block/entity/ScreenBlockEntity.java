@@ -75,9 +75,6 @@ public class ScreenBlockEntity extends BlockEntity implements ExtendedScreenHand
         ComputerCaseEntity computer = (ComputerCaseEntity) world.getBlockEntity(linkedComputer);
         assert computer != null;
 
-        GraphicsCard graphicsCard = computer.computer.getDevice(GraphicsCard.class);
-        graphicsCard.render();
-
         int pageCount = GraphicsCard.FRAMEBUFFER_PAGE_COUNT;
         ByteArrayOutputStream combined = new ByteArrayOutputStream(4096 * pageCount);
 

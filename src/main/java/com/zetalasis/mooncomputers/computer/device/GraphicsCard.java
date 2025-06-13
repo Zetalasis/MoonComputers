@@ -1,5 +1,6 @@
 package com.zetalasis.mooncomputers.computer.device;
 
+import com.zetalasis.mooncomputers.MoonComputers;
 import com.zetalasis.mooncomputers.computer.VirtualizedComputer;
 import com.zetalasis.mooncomputers.computer.memory.MemoryPage;
 
@@ -11,10 +12,14 @@ import java.util.Arrays;
 
 public class GraphicsCard implements IMemoryMappedIO {
     public static final int FRAMEBUFFER_PAGE_COUNT = 169;
-    private final VirtualizedComputer computer;
+    public final VirtualizedComputer computer;
     private final MemoryPage[] framebufferPages = new MemoryPage[FRAMEBUFFER_PAGE_COUNT];
 
-    public int mode = 2;
+    private byte[] framebuffer;
+    private final int fbWidth  = 220;
+    private final int fbHeight = 220;
+
+    public int mode = 0;
 
     public GraphicsCard(VirtualizedComputer host)
     {
@@ -49,9 +54,12 @@ public class GraphicsCard implements IMemoryMappedIO {
     }
 
     public void render() {
-        int width = 220;
-        int height = 220;
-        int totalPixels = width * height;
+        render(null);
+        finish();
+    }
+
+    public void render(Runnable onPaint) {
+        int totalPixels = fbWidth * fbHeight;
         int framebufferSize = 0;
 
         if (mode == 0)
@@ -60,41 +68,32 @@ public class GraphicsCard implements IMemoryMappedIO {
         }
         else if (mode == 1)
         {
-            // add 3 for header info
-            framebufferSize = 3 + totalPixels; // 1bpp (monochrome)
+            framebufferSize = 3 + totalPixels; // 1bpp
         }
         else if (mode == 2)
         {
-            // add 3 for header info
-            framebufferSize = 3 + totalPixels * 3; // 3 bpp (R, G, B)
+            framebufferSize = 3 + totalPixels * 3; // 3bpp
         }
 
-        byte[] framebuffer = new byte[framebufferSize];
-        /* Mode:
-         *  0: Text mode
-         *  1: 128x128 Monochrome
-         *  2: 64x64 Color */
+        framebuffer = new byte[framebufferSize];
         framebuffer[0] = (byte) mode;
-        framebuffer[1] = (byte) width;
-        framebuffer[2] = (byte) height;
+        framebuffer[1] = (byte) fbWidth;
+        framebuffer[2] = (byte) fbHeight;
 
-//        for (int y = 0; y < height; y++) {
-//            for (int x = 0; x < width; x++) {
-//                int pixelIndex = 3 + (y * width + x) * 3;
-//
-//                int brightness = ((x + y) * 255) / (width + height - 2);
-//                byte r = (byte) brightness;
-//                byte g = (byte) brightness;
-//                byte b = (byte) brightness;
-//
-//                framebuffer[pixelIndex] = r;
-//                framebuffer[pixelIndex + 1] = g;
-//                framebuffer[pixelIndex + 2] = b;
-//            }
-//        }
+        //fill(0, 0, fbWidth, fbHeight, 0xFFFFFF);
 
-        BitmappedTexture bitmappedTexture = new BitmappedTexture("doom.bmp", computer.getDevice(FileIO.class));
-        bitmappedTexture.blitToFramebuffer(framebuffer, width, height, 0, 0);
+        if (onPaint != null)
+        {
+            onPaint.run();
+        }
+
+        MoonComputers.LOGGER.info("Created framebuffer!");
+    }
+
+    public void finish()
+    {
+        if (framebuffer == null)
+            return;
 
         int remaining = framebuffer.length;
         int offset = 0;
@@ -107,6 +106,46 @@ public class GraphicsCard implements IMemoryMappedIO {
             remaining -= toWrite;
 
             if (remaining <= 0) break;
+        }
+    }
+
+    public void fill(int x1, int y1, int x2, int y2, int color) {
+
+        if (mode != 2 || framebuffer == null) {
+            MoonComputers.LOGGER.info("Attempted to fill but failed | mode {} | framebuffer {}", mode, framebuffer == null ? "null" : "OK");
+            return;
+        }
+
+        if (x1 > x2) { int t = x1; x1 = x2; x2 = t; }
+        if (y1 > y2) { int t = y1; y1 = y2; y2 = t; }
+
+        x1 = Math.max(0, x1);   y1 = Math.max(0, y1);
+        x2 = Math.min(fbWidth  - 1, x2);
+        y2 = Math.min(fbHeight - 1, y2);
+
+        if (x1 > x2 || y1 > y2) {
+            return;
+        }
+
+        final int rectW  = x2 - x1 + 1;
+        final int rowLen = rectW * 3;
+
+        byte r = (byte) ((color >> 16) & 0xFF);
+        byte g = (byte) ((color >> 8)  & 0xFF);
+        byte b = (byte) ( color        & 0xFF);
+
+        byte[] rowBuf = new byte[rowLen];
+        rowBuf[0] = r; rowBuf[1] = g; rowBuf[2] = b;
+
+        for (int filled = 3; filled < rowLen; ) {
+            int copy = Math.min(filled, rowLen - filled);
+            System.arraycopy(rowBuf, 0, rowBuf, filled, copy);
+            filled += copy;
+        }
+
+        for (int y = y1; y <= y2; y++) {
+            int dst = 3 + (y * fbWidth + x1) * 3;
+            System.arraycopy(rowBuf, 0, framebuffer, dst, rowLen);
         }
     }
 

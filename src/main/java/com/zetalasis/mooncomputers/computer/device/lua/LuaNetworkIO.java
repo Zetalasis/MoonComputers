@@ -1,12 +1,11 @@
-package com.zetalasis.mooncomputers.computer.device;
+package com.zetalasis.mooncomputers.computer.device.lua;
 
 import com.zetalasis.mooncomputers.MoonComputers;
-import org.luaj.vm2.Globals;
+import com.zetalasis.mooncomputers.computer.device.NetworkIO;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.OneArgFunction;
-import org.luaj.vm2.lib.jse.JsePlatform;
 
 import java.nio.charset.StandardCharsets;
 

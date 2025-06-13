@@ -1,14 +1,16 @@
 package com.zetalasis.mooncomputers.computer;
 
 import com.zetalasis.mooncomputers.MoonComputers;
+import com.zetalasis.mooncomputers.block.entity.ComputerCaseEntity;
 import com.zetalasis.mooncomputers.computer.device.*;
+import com.zetalasis.mooncomputers.computer.device.lua.LuaGraphicsIO;
+import com.zetalasis.mooncomputers.computer.device.lua.LuaNetworkIO;
 import com.zetalasis.mooncomputers.computer.memory.MemoryPage;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.VarArgFunction;
-import org.luaj.vm2.lib.ZeroArgFunction;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
 import java.util.HashMap;
@@ -18,14 +20,17 @@ public class VirtualizedComputer {
     public final byte[] MEMORY_SPACE;
     public final HashMap<Integer, MemoryPage> PAGE_TABLE = new HashMap<>();
     public final HashMap<MemoryPage, IMemoryMappedIO> DEVICE_TREE = new HashMap<>();
+    public final ComputerCaseEntity computerBlock;
 
     public final Globals luaGlobals;
     private LuaValue luaTickFunction;
     private LuaValue onInputFunction;
+    public LuaValue paintFunction;
     public final Consumer<String> printMethod;
 
-    public VirtualizedComputer(int pages, Consumer<String> printMethod)
+    public VirtualizedComputer(ComputerCaseEntity block, int pages, Consumer<String> printMethod)
     {
+        this.computerBlock = block;
         MEMORY_SPACE = new byte[4096 * pages];
         this.printMethod = printMethod;
         this.luaGlobals = JsePlatform.standardGlobals();
@@ -46,10 +51,10 @@ public class VirtualizedComputer {
         FileIO fileIO = new FileIO();
         DEVICE_TREE.put(PAGE_TABLE.get(5), fileIO);
 
-        GraphicsCard card = new GraphicsCard(this);
-        card.mapFramebufferPages(0);
-        DEVICE_TREE.put(PAGE_TABLE.get(0), card);
-        card.render();
+        GraphicsCard graphicsCard = new GraphicsCard(this);
+        graphicsCard.mapFramebufferPages(0);
+        DEVICE_TREE.put(PAGE_TABLE.get(0), graphicsCard);
+        graphicsCard.render();
 
         MoonComputers.LOGGER.info("Loaded computer | {} Pages | {}kb Hardware Memory | Device Tree: ", pages, pages*4096);
         for (IMemoryMappedIO device : DEVICE_TREE.values())
@@ -97,6 +102,7 @@ public class VirtualizedComputer {
         });
 
         luaGlobals.set("net", new LuaNetworkIO(networkIO));
+        luaGlobals.set("graphics", new LuaGraphicsIO(graphicsCard));
     }
 
     @SuppressWarnings("unchecked")
@@ -127,9 +133,11 @@ public class VirtualizedComputer {
         LuaValue method = luaGlobals.get(name);
         if (!method.isnil() && method.isfunction())
         {
+            MoonComputers.LOGGER.info("Found method \"{}\"", name);
             return method;
         }
 
+        MoonComputers.LOGGER.info("Failed to find method \"{}\"", name);
         return null;
     }
 
@@ -139,6 +147,7 @@ public class VirtualizedComputer {
             chunk.call();
             luaTickFunction = getLuaMethod("tick");
             onInputFunction = getLuaMethod("onInput");
+            paintFunction = getLuaMethod("paint");
         } catch (LuaError e) {
             MoonComputers.LOGGER.error("Lua error: {}", e.getMessage());
             printMethod.accept("§cError caught while running script:\n" + e.getMessage() + "§r");

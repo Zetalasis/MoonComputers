@@ -25,39 +25,11 @@ public class ScreenBlockRenderer implements BlockEntityRenderer<ScreenBlockEntit
 
     }
 
-    @Override
-    public void render(ScreenBlockEntity entity, float tickDelta, MatrixStack matrices,
-                       VertexConsumerProvider vertexConsumers, int light, int overlay) {
-        World world = entity.getWorld();
-        if (world == null) return;
-
-        BlockPos pos = entity.getPos();
-        BlockState state = world.getBlockState(pos);
-        if (!state.isOf(MCBlocks.SCREEN)) return;
-
-        Direction direction = state.get(ScreenBlock.FACING);
+    private void renderText(ScreenBlockEntity entity, float tickDelta, MatrixStack matrices,
+                            VertexConsumerProvider vertexConsumers, int light, int overlay)
+    {
         TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
 
-        if (entity.vram == null || entity.vram.length < 3) return;
-
-        matrices.push();
-        matrices.translate(0.5, 0.5, 0.5);
-
-        float angle = switch (direction) {
-            case NORTH -> 180f;
-            case SOUTH -> 0f;
-            case WEST  -> 90f;
-            case EAST  -> -90f;
-            default    -> 0f;
-        };
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(angle));
-
-        if (direction == Direction.NORTH || direction == Direction.SOUTH)
-            matrices.translate(0.0, 0.0, 0.501);
-        else
-            matrices.translate(0.501, 0.0, 0.0);
-
-        // ==== TEXT RENDERING ====
         List<String> lines = entity.getScreenLines();
         float textScale = (1f / 512f);
         matrices.push();
@@ -80,27 +52,11 @@ public class ScreenBlockRenderer implements BlockEntityRenderer<ScreenBlockEntit
             y += textRenderer.fontHeight + 1;
         }
         matrices.pop();
+    }
 
-        // ==== BITMAP RENDERING ====
-        /* VRAM Layout
-        *   0x0: Mode
-        *   0x1: Width
-        *   0x2: Height
-        *   0x3 - 0x16k: Pixel Data */
-        byte[] vram = entity.vram;
-        int mode = Byte.toUnsignedInt(vram[0]);
-        int width = Byte.toUnsignedInt(vram[1]);
-        int height = Byte.toUnsignedInt(vram[2]);
-
-        /* Modes
-        *   0: Text Only
-        *   1: 128x128 Monochrome (unimplemented)
-        *   2. 64x64 Color */
-        if (mode != 1 && mode != 2) {
-            matrices.pop();
-            return; // not in bitmap mode
-        }
-
+    private void renderVRAM(ScreenBlockEntity entity, float tickDelta, MatrixStack matrices,
+                            VertexConsumerProvider vertexConsumers, byte[] vram, int mode, int width, int height)
+    {
         float pixelScale = 1.0f / width;
         float borderScale = 0.7f;
 
@@ -128,6 +84,59 @@ public class ScreenBlockRenderer implements BlockEntityRenderer<ScreenBlockEntit
                 vc.vertex(matrix, xPix, yPix + 1, 0).color(r, g, b, 1.0f).next();
             }
         }
+    }
+
+    @Override
+    public void render(ScreenBlockEntity entity, float tickDelta, MatrixStack matrices,
+                       VertexConsumerProvider vertexConsumers, int light, int overlay) {
+        World world = entity.getWorld();
+        if (world == null) return;
+        if (entity.vram == null || entity.vram.length < 3) return;
+
+        BlockPos pos = entity.getPos();
+        BlockState state = world.getBlockState(pos);
+        if (!state.isOf(MCBlocks.SCREEN)) return;
+
+        Direction direction = state.get(ScreenBlock.FACING);
+
+        matrices.push();
+        matrices.translate(0.5, 0.5, 0.5);
+
+        float angle = switch (direction) {
+            case NORTH -> 180f;
+            case SOUTH -> 0f;
+            case WEST  -> 90f;
+            case EAST  -> -90f;
+            default    -> 0f;
+        };
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(angle));
+
+        if (direction == Direction.NORTH || direction == Direction.SOUTH)
+            matrices.translate(0.0, 0.0, 0.501);
+        else
+            matrices.translate(0.501, 0.0, 0.0);
+
+        /* VRAM Layout
+         *   0x0: Mode
+         *   0x1: Width
+         *   0x2: Height
+         *   0x3 - 0x16k: Pixel Data */
+        byte[] vram = entity.vram;
+        /* Modes
+         *   0: Text Only
+         *   1: 128x128 Monochrome (unimplemented)
+         *   2. 64x64 Color */
+        int mode = Byte.toUnsignedInt(vram[0]);
+        int width = Byte.toUnsignedInt(vram[1]);
+        int height = Byte.toUnsignedInt(vram[2]);
+
+        // ==== TEXT RENDERING ====
+        if (mode == 0)
+            renderText(entity, tickDelta, matrices, vertexConsumers, light, overlay);
+
+        // ==== BITMAP RENDERING ====
+        if (mode == 1 || mode == 2)
+            renderVRAM(entity, tickDelta, matrices, vertexConsumers, vram, mode, width, height);
 
         matrices.pop();
     }
