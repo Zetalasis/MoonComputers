@@ -16,9 +16,5 @@ public class UpdateComputerStateS2C {
             return;
 
         BlockPos pos = buf.readBlockPos();
-        if (client.world.getBlockEntity(pos) instanceof ComputerCaseEntity computer)
-        {
-            MoonComputers.LOGGER.info("[CLIENT] Updating computer state for computer at \"{}\"", pos);
-        }
     }
 }

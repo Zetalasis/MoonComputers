@@ -15,9 +15,9 @@ public class GraphicsCard implements IMemoryMappedIO {
     public final VirtualizedComputer computer;
     private final MemoryPage[] framebufferPages = new MemoryPage[FRAMEBUFFER_PAGE_COUNT];
 
-    private byte[] framebuffer;
-    private final int fbWidth  = 220;
-    private final int fbHeight = 220;
+    public byte[] framebuffer;
+    public final int fbWidth  = 220;
+    public final int fbHeight = 220;
 
     public int mode = 0;
 
@@ -149,7 +149,7 @@ public class GraphicsCard implements IMemoryMappedIO {
         }
     }
 
-    class BitmappedTexture {
+    public static class BitmappedTexture {
         private final byte[] rgbPixels;
         public final int width;
         public final int height;
@@ -189,7 +189,8 @@ public class GraphicsCard implements IMemoryMappedIO {
             rgbPixels = new byte[width * height * 3];
 
             for (int y = 0; y < height; y++) {
-                int bmpRowStart = pixelArrayOffset + (height - 1 - y) * rowSize;
+                //int bmpRowStart = pixelArrayOffset + (height - 1 - y) * rowSize;
+                int bmpRowStart = pixelArrayOffset + y * rowSize;
                 for (int x = 0; x < width; x++) {
                     int bmpPixel = bmpRowStart + x * 3;
                     int texPixel = (y * width + x) * 3;

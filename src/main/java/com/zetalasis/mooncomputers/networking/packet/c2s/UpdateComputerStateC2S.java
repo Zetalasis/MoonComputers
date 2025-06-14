@@ -24,8 +24,6 @@ public class UpdateComputerStateC2S {
             BlockState state = player.getWorld().getBlockState(pos);
 
             if (state.isOf(MCBlocks.COMPUTER_CASE)) {
-                MoonComputers.LOGGER.info("[SERVER] Updating computer state for computer at \"{}\"", pos);
-
                 ComputerCaseEntity entity = (ComputerCaseEntity) player.getWorld().getBlockEntity(pos);
                 assert entity != null;
 

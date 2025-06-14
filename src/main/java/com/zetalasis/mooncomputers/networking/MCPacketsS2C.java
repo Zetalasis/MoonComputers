@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
+import org.lwjgl.openal.AL10;
 
 import java.util.Arrays;
 import java.util.List;
@@ -77,5 +78,31 @@ public class MCPacketsS2C {
         }
 
         MoonComputers.LOGGER.info("Sent screen update in {} chunks, total size: {} bytes", totalChunks, vram.length);
+    }
+
+    public static void soundEvent(ServerPlayerEntity sp, BlockPos pos, int sampleRate , byte[] data)
+    {
+        int totalChunks = (int) Math.ceil((double) data.length / MAX_CHUNK_SIZE);
+
+        for (int chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++)
+        {
+            int start = chunkIndex * MAX_CHUNK_SIZE;
+            int end = Math.min(data.length, (chunkIndex + 1) * MAX_CHUNK_SIZE);
+            byte[] chunk = Arrays.copyOfRange(data, start, end);
+
+            PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+
+            buf.writeBlockPos(pos);
+            buf.writeInt(totalChunks);
+            buf.writeInt(chunkIndex);
+            buf.writeInt(data.length);
+            buf.writeInt(sampleRate);
+            buf.writeInt(AL10.AL_FORMAT_STEREO8);
+
+            buf.writeInt(chunk.length);
+            buf.writeBytes(chunk);
+
+            ServerPlayNetworking.send(sp, MCMessages.COMPUTER_SOUND_UPDATE_S2C, buf);
+        }
     }
 }

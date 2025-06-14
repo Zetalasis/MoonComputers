@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 
 public class UpdateScreenDataS2C {
-    // Per-position tracking (in case multiple screens update concurrently)
     private static final Map<BlockPos, ScreenChunkBuffer> activeBuffers = new HashMap<>();
 
     public static void handle(MinecraftClient client, ClientPlayNetworkHandler handler,
@@ -56,8 +55,6 @@ public class UpdateScreenDataS2C {
 
         ScreenBlockEntity entity = (ScreenBlockEntity) client.world.getBlockEntity(pos);
         if (entity == null) return;
-
-        MoonComputers.LOGGER.info("[CLIENT] Screen at {} fully updated", pos);
 
         if (buffer.getRawText() != null) {
             List<String> lines = Arrays.stream(buffer.getRawText().split("\n")).toList();

@@ -1,6 +1,7 @@
 package com.zetalasis.mooncomputers.computer.device.lua;
 
 import com.zetalasis.mooncomputers.MoonComputers;
+import com.zetalasis.mooncomputers.computer.device.FileIO;
 import com.zetalasis.mooncomputers.computer.device.GraphicsCard;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
@@ -10,9 +11,12 @@ import org.luaj.vm2.lib.OneArgFunction;
 import org.luaj.vm2.lib.VarArgFunction;
 import org.luaj.vm2.lib.ZeroArgFunction;
 
+import java.util.HashMap;
+
 public class LuaGraphicsIO extends LuaTable {
     private final GraphicsCard graphicsCard;
     private final Runnable onPaint = this::onRender;
+    private final HashMap<String, GraphicsCard.BitmappedTexture> bitmapCache = new HashMap<>();
 
     public LuaGraphicsIO(GraphicsCard graphicsCard)
     {
@@ -59,6 +63,28 @@ public class LuaGraphicsIO extends LuaTable {
             }
         });
 
+        set("renderBMP", new VarArgFunction() {
+            @Override
+            public Varargs invoke(Varargs varargs) {
+                String bmpName = varargs.arg1().tojstring();
+
+                int x = varargs.arg(2).toint();
+                int y = varargs.arg(3).toint();
+
+//                int width = varargs.arg(4).toint();
+//                int height = varargs.arg(5).toint();
+
+                if (!bitmapCache.containsKey(bmpName))
+                    throw new LuaError("bitmapCache does not contain \"" + bmpName + "\"");
+
+                GraphicsCard.BitmappedTexture texture = bitmapCache.get(bmpName);
+
+                texture.blitToFramebuffer(graphicsCard.framebuffer, graphicsCard.fbWidth, graphicsCard.fbHeight, x, y);
+
+                return LuaValue.NIL;
+            }
+        });
+
         set("finish", new ZeroArgFunction() {
             @Override
             public LuaValue call() {
@@ -69,6 +95,24 @@ public class LuaGraphicsIO extends LuaTable {
                 graphicsCard.computer.computerBlock.screen.flush();
 
                 return LuaValue.NIL;
+            }
+        });
+
+        set("loadBMP", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue luaValue) {
+                String name = luaValue.tojstring();
+
+                try {
+                    GraphicsCard.BitmappedTexture texture = new GraphicsCard.BitmappedTexture(name, graphicsCard.computer.getDevice(FileIO.class));
+
+                    bitmapCache.put(name, texture);
+                    return LuaValue.NIL;
+                }
+                catch (Exception e)
+                {
+                    throw new LuaError("Failed to load BMP: \"" + e + "\"");
+                }
             }
         });
     }

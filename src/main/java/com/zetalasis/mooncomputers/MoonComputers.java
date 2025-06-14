@@ -1,6 +1,7 @@
 package com.zetalasis.mooncomputers;
 
 import com.zetalasis.mooncomputers.block.MCBlocks;
+import com.zetalasis.mooncomputers.computer.VirtualizedComputer;
 import com.zetalasis.mooncomputers.entity.MCEntities;
 import com.zetalasis.mooncomputers.item.MCItems;
 import com.zetalasis.mooncomputers.networking.MCPacketsS2C;
@@ -38,7 +39,6 @@ public class MoonComputers implements ModInitializer {
 		MCPacketsS2C.register();
 
 		LOGGER.info("Hello Fabric world!");
-
 		ServerTickEvents.END_WORLD_TICK.register((world) -> {
 			if (world == world.getServer().getOverworld())
 			{

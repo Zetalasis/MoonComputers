@@ -5,6 +5,7 @@ import com.zetalasis.mooncomputers.block.entity.ComputerCaseEntity;
 import com.zetalasis.mooncomputers.computer.device.*;
 import com.zetalasis.mooncomputers.computer.device.lua.LuaGraphicsIO;
 import com.zetalasis.mooncomputers.computer.device.lua.LuaNetworkIO;
+import com.zetalasis.mooncomputers.computer.device.lua.LuaSoundCard;
 import com.zetalasis.mooncomputers.computer.memory.MemoryPage;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaError;
@@ -14,9 +15,12 @@ import org.luaj.vm2.lib.VarArgFunction;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.function.Consumer;
 
 public class VirtualizedComputer {
+    public static final HashSet<VirtualizedComputer> computers = new HashSet<>();
+
     public final byte[] MEMORY_SPACE;
     public final HashMap<Integer, MemoryPage> PAGE_TABLE = new HashMap<>();
     public final HashMap<MemoryPage, IMemoryMappedIO> DEVICE_TREE = new HashMap<>();
@@ -103,6 +107,9 @@ public class VirtualizedComputer {
 
         luaGlobals.set("net", new LuaNetworkIO(networkIO));
         luaGlobals.set("graphics", new LuaGraphicsIO(graphicsCard));
+        luaGlobals.set("sound", new LuaSoundCard(new SoundCard(this)));
+
+        computers.add(this);
     }
 
     @SuppressWarnings("unchecked")
@@ -126,6 +133,7 @@ public class VirtualizedComputer {
         {
             device.deregister();
         }
+        computers.remove(this);
     }
 
     public LuaValue getLuaMethod(String name)
